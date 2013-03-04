@@ -1,17 +1,22 @@
-//#define
-//#undef
-//#ifdef
-//#ifndef
-//#if
-//#endif
+//#define TABLE_SIZE 100
+//#undef TABLE_SIZE
+//#error Oops. Something bad has happened!
+//#include path/to/some/file
+//#ifdef TABLE_SIZE
+//#ifndef TABLE_SIZE
+//#if TABLE_SIZE * 2 > 100
+//#elif TABLE_SIZE * 2 > 50
 //#else
-//#elif
-//#error
-//#include
-//#__LINE__    Integer value representing the current line in the source code file being compiled.
-//#__FILE__    A string literal containing the presumed name of the source file being compiled.
-//#__DATE__    A string literal in the form "Mmm dd yyyy" containing the date in which the compilation process began.
-//#__TIME__    A string literal in the form "hh:mm:ss" containing the time at which the compilation process began.
+//#endif
+/* predefined constants
+ * #__LINE__    Integer value representing the current line in the source code file being compiled.
+ * #__FILE__    A string literal containing the presumed name of the source file being compiled.
+ * #__DATE__    A string literal in the form "Mmm dd yyyy" containing the date in which the compilation process began.
+ * #__TIME__    A string literal in the form "hh:mm:ss" containing the time at which the compilation process began.
+ * #__NODE__    Defined if launched with node.js
+ */
+// Using constant. In this example used an empty string to suppres js error. 
+console.log(/*#__LINE__*/'');
 /*#macro getSocket(number) {
     var socket = this.getCustomerSocket(cID);
     if (!socket) {
@@ -20,17 +25,24 @@
     console.cog(number)
     #__CODE__
     socket = null;
-}*/
-// original                     || output
-function getScreen(io, cID) {   //function getScreen(io, cID) {
-    //#@getSocket(5) {          //    var socket = this.getCustomerSocket(cID);
-    socket.emit('getScreen');   //    if (!socket) {
-    //}@#                       //        return;
-}                               //    }
-                                //    console.cog(5)
-                                //    socket.emit('getScreen');
-                                //    socket = null;
-                                //}
+}#*/
+
+// source:
+function getScreen(io, cID) {
+    //#@getSocket(5) {
+    socket.emit('getScreen');
+    //#}@
+}
+// output:
+//function getScreen(io, cID) {
+//    var socket = this.getCustomerSocket(cID);
+//    if (!socket) {
+//        return;
+//    }
+//    console.cog(5)
+//    socket.emit('getScreen');
+//    socket = null;
+//}
 
 console.log('pjs')
 
