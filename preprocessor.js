@@ -3,9 +3,7 @@ var path = require('path');
 exports.compile = function (code, options) {
     options.node = typeof options.node == 'undefined' ? true : false;
     var parser = new Parser(options.node, options.filename || '');
-    console.log('----------------------------');
-    parser.parse(code);
-    console.log('----------------------------');
+    parser.compile(code);
     return code;
 };
 
@@ -32,207 +30,7 @@ function Parser(node, filename) {
         this.simbols.__NODE__ = 1;
     }
 
-    this.tokens = {
-        start: {
-            prev: false,
-            next: false
-        },
-        define: {
-            parse: function (text) {
-                //#define TABLE_SIZE 100 * 5 / 20
-                var matches = text.match(/^\/\/\#(define) ([a-zA-Z_]+) ([0-9 +\-\*\/]+)$/);
-                if (matches) {
-                    return [matches[1], matches[2], matches[3]];
-                }
-                return false;
-            },
-            change: false,
-            prev: false,
-            next: false
-        },
-        undef: {
-            parse: function (text) {
-                //#undef TABLE_SIZE
-                var matches = text.match(/^\/\/\#(undef) ([a-zA-Z_]+)$/);
-                if (matches) {
-                    return [matches[1], matches[2]];
-                }
-                return false;
-            },
-            change: false,
-            prev: false,
-            next: false
-        },
-        error: {
-            parse: function (text) {
-                //#error Oops. Something bad has happened!
-                var matches = text.match(/^\/\/\#(error) (.+)$/);
-                if (matches) {
-                    return [matches[1], matches[2]];
-                }
-                return false;
-            },
-            change: false,
-            prev: false,
-            next: false
-        },
-        include: {
-            parse: function (text) {
-                //#include path/to/some/file.ext
-                var matches = text.match(/^\/\/\#(include) ([a-zA-Z_\.\/]+)$/);
-                if (matches) {
-                    return [matches[1], matches[2]];
-                }
-                return false;
-            },
-            change: false,
-            prev: false,
-            next: false
-        },
-        ifdef: {
-            parse: function (text) {
-                //#ifdef TABLE_SIZE
-                var matches = text.match(/^\/\/\#(ifdef) ([a-zA-Z_]+)$/);
-                if (matches) {
-                    return [matches[1], matches[2]];
-                }
-                return false;
-            },
-            change: true,
-            prev: false,
-            next: ['elif', 'else', 'endif']
-        },
-        ifndef: {
-            parse: function (text) {
-                //#ifndef TABLE_SIZE
-                var matches = text.match(/^\/\/\#(ifndef) ([a-zA-Z_]+)$/);
-                if (matches) {
-                    return [matches[1], matches[2]];
-                }
-                return false;
-            },
-            change: true,
-            prev: false,
-            next: ['elif', 'else', 'endif']
-        },
-        _if: {
-            parse: function (text) {
-                //#if TABLE_SIZE * 2 > 100
-                var matches = text.match(/^\/\/\#(if) ([a-zA-Z_0-9 +\-\*\/<>=]+)$/);
-                if (matches) {
-                    return [matches[1], matches[2]];
-                }
-                return false;
-            },
-            change: true,
-            prev: false,
-            next: ['elif', 'else', 'endif']
-        },
-        elif: {
-            parse: function (text) {
-                //#elif TABLE_SIZE * 2 > 50
-                var matches = text.match(/^\/\/\#(elif) ([a-zA-Z_0-9 +\-\*\/<>=]+)$/);
-                if (matches) {
-                    return [matches[1], matches[2]];
-                }
-                return false;
-            },
-            change: true,
-            prev: ['ifdef', 'ifndef', 'if', 'elif'],
-            next: ['elif', 'else', 'endif']
-        },
-        _else: {
-            parse: function (text) {
-                //#else
-                var matches = text.match(/^\/\/\#(else)$/);
-                if (matches) {
-                    return [matches[1]];
-                }
-                return false;
-            },
-            change: true,
-            prev: ['ifdef', 'ifndef', 'if', 'elif'],
-            next: ['endif']
-        },
-        endif: {
-            parse: function (text) {
-                //#endif
-                var matches = text.match(/^\/\/\#(endif)$/);
-                if (matches) {
-                    return [matches[1]];
-                }
-                return false;
-            },
-            change: true,
-            prev: ['ifdef', 'ifndef', 'if', 'elif', 'else'],
-            next: false
-        },
-        _const: {
-            parse: function (text) {
-                //@TODO Multiple constants
-                //console.log(/*#__LINE__*/'');
-                var matches = text.match(/\/\*#([a-zA-Z_]+)\*\//);
-                if (matches) {
-                    return ['_const', matches[1]];
-                }
-                return false;
-            },
-            change: false,
-            prev: false,
-            next: false
-        },
-        macro: {
-            parse: function (text) {
-                // /*#macro getSocket ( number, second ) {
-                // /*#macro getSocket(number,second){
-                var matches = text.match(/^\/\*#(macro) ([a-zA-Z_]+) *\(([a-zA-Z_ ,]*)\) *\{$/);
-                if (matches) {
-                    return [matches[1], matches[2], matches[3]];
-                }
-                return false;
-            },
-            change: false,
-            prev: false,
-            next: false
-        },
-        macro_end: {
-            parse: function (text) {
-                if (text == '}#*/') {
-                    return ['endMacro'];
-                }
-                return false;
-            },
-            change: false,
-            prev: false,
-            next: false
-        },
-        macro_call: {
-            parse: function (text) {
-                //#@getSocket ( 5 ) {
-                //#@getSocket(5) {
-                //#@getSocket(5){
-                var matches = text.match(/^\/\/#@(getSocket) *\(([a-zA-Z0-9_ ,+\-\*\/]*)\) *\{$/);
-                if (matches) {
-                    return ['callMacro', matches[1], matches[2]];
-                }
-                return false;
-            },
-            change: true,
-            prev: false,
-            next: ['macro_end_call']
-        },
-        macro_end_call: {
-            parse: function (text) {
-                if (text == '//#}@') {
-                    return ['endCallMacro'];
-                }
-                return false;
-            },
-            change: true,
-            prev: 'macro_call',
-            next: false
-        }
-    };
+    this.tokens = require('./tokens');
 
     this.allTokens = [];
     for (var t in this.tokens) {
@@ -240,6 +38,16 @@ function Parser(node, filename) {
             this.allTokens.push(t);
         }
     }
+}
+
+function parseType(str) {
+    //float
+    if (/^\d*\.\d+$/.test(str)) {
+        return parseFloat(str);
+    } else if (/^\d+$/.test(str)) {
+        return parseInt(str, 10);
+    }
+    return str;
 }
 
 Parser.prototype = {
@@ -255,8 +63,9 @@ Parser.prototype = {
                 return result;
             }
         }
+        return null;
     },
-    parse: function (code) {
+    compile: function (code) {
         this.code = code.split('\n');
         for (var len = this.code.length; this.simbols.__LINE__ < len; this.simbols.__LINE__++) {
             var line = this.code[this.simbols.__LINE__];
@@ -265,9 +74,16 @@ Parser.prototype = {
             }
 
             var token = this.getToken(line);
+            if (!token) {
+                continue;
+            }
+            console.log(this.simbols);
             console.log('--------------------------');
-            console.log(token);
+            this[token[0]].apply(this, token.slice(1));
+            console.log(this.simbols);
+            //this.error('STOP');
             console.log(this.simbols.__LINE__ + ':', line);
+            console.log('##########################');
         }
     },
     // directives
@@ -276,7 +92,7 @@ Parser.prototype = {
             this.error('Cannot redeclare constant ' + varName + '.');
         }
 
-        this.simbols[varName] = value;
+        this.simbols[varName] = parseType(value);
         //
     },
     undef: function (varName) {
@@ -294,7 +110,7 @@ Parser.prototype = {
         return this.simbols[varName];
     },
     error: function (message) {
-        console.log(message + ' Error at line ' + (this.simbols.__LINE__ + 1) + ' in ' + this.filename);
+        console.log('\033[1;31mPREPROCESSOR:\033[00m\ Error at line ' + (this.simbols.__LINE__ + 1) + ' in ' + this.filename + '. ' + message);
         process.exit(1);
     },
     include: function () {

@@ -1,4 +1,5 @@
 //#define TABLE_SIZE 100
+//#define STRING Test
 //#undef TABLE_SIZE
 //#error Oops. Something bad has happened!
 //#include path/to/some/file
