@@ -1,33 +1,33 @@
 module.exports = {
     start: {
-        prev: false,
         next: false
     },
     define: {
         parse: function (text) {
             //#define TABLE_SIZE 100 * 5 / 20
             //#define TABLE_SIZE Test
-            var matches = text.match(/^\/\/\#(define) ([a-zA-Z_]+) ([a-zA-Z_0-9 +\-\*\/]+)$/);
+            var matches = text.match(/^\/\/\#(define) ([a-zA-Z_]+) ([a-zA-Z_0-9 '"+\-\*\/]+)$/);
             if (matches) {
                 return [matches[1], matches[2], matches[3]];
             }
             return false;
         },
         change: false,
-        prev: false,
         next: false
     },
     undef: {
         parse: function (text) {
             //#undef TABLE_SIZE
-            var matches = text.match(/^\/\/\#(undef) ([a-zA-Z_]+)$/);
+            var matches = text.match(/^\/\/\#(undef) ([a-zA-Z_]+)([a-zA-Z_0-9 '"+\-\*\/]+)?$/);
             if (matches) {
+                if (matches.length == 4) {
+                    return [matches[1], matches[2], matches[3]];
+                }
                 return [matches[1], matches[2]];
             }
             return false;
         },
         change: false,
-        prev: false,
         next: false
     },
     error: {
@@ -40,7 +40,6 @@ module.exports = {
             return false;
         },
         change: false,
-        prev: false,
         next: false
     },
     include: {
@@ -53,7 +52,6 @@ module.exports = {
             return false;
         },
         change: false,
-        prev: false,
         next: false
     },
     ifdef: {
@@ -66,8 +64,7 @@ module.exports = {
             return false;
         },
         change: true,
-        prev: false,
-        next: ['elif', 'else', 'endif']
+        next: ['elif', '_else', 'endif']
     },
     ifndef: {
         parse: function (text) {
@@ -79,8 +76,7 @@ module.exports = {
             return false;
         },
         change: true,
-        prev: false,
-        next: ['elif', 'else', 'endif']
+        next: ['elif', '_else', 'endif']
     },
     _if: {
         parse: function (text) {
@@ -92,8 +88,7 @@ module.exports = {
             return false;
         },
         change: true,
-        prev: false,
-        next: ['elif', 'else', 'endif']
+        next: ['elif', '_else', 'endif']
     },
     elif: {
         parse: function (text) {
@@ -105,8 +100,7 @@ module.exports = {
             return false;
         },
         change: true,
-        prev: ['ifdef', 'ifndef', 'if', 'elif'],
-        next: ['elif', 'else', 'endif']
+        next: ['elif', '_else', 'endif']
     },
     _else: {
         parse: function (text) {
@@ -118,7 +112,6 @@ module.exports = {
             return false;
         },
         change: true,
-        prev: ['ifdef', 'ifndef', 'if', 'elif'],
         next: ['endif']
     },
     endif: {
@@ -131,7 +124,6 @@ module.exports = {
             return false;
         },
         change: true,
-        prev: ['ifdef', 'ifndef', 'if', 'elif', 'else'],
         next: false
     },
     _const: {
@@ -145,7 +137,6 @@ module.exports = {
             return false;
         },
         change: false,
-        prev: false,
         next: false
     },
     macro: {
@@ -158,9 +149,8 @@ module.exports = {
             }
             return false;
         },
-        change: false,
-        prev: false,
-        next: false
+        change: true,
+        next: ['macro_end']
     },
     macro_end: {
         parse: function (text) {
@@ -169,8 +159,7 @@ module.exports = {
             }
             return false;
         },
-        change: false,
-        prev: false,
+        change: true,
         next: false
     },
     macro_call: {
@@ -185,7 +174,6 @@ module.exports = {
             return false;
         },
         change: true,
-        prev: false,
         next: ['macro_end_call']
     },
     macro_end_call: {
@@ -196,7 +184,6 @@ module.exports = {
             return false;
         },
         change: true,
-        prev: 'macro_call',
         next: false
     }
 };

@@ -1,0 +1,5 @@
+//#ifdef TABLE_SIZE
+"in ifdef"
+console.log(/*#TABLE_SIZE*/)
+//#endif
+"after ifdef"

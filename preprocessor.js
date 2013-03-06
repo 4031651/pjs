@@ -2,12 +2,18 @@ var path = require('path');
 
 exports.compile = function (code, options) {
     options.node = typeof options.node == 'undefined' ? true : false;
-    var parser = new Parser(options.node, options.filename || '');
-    parser.compile(code);
-    return code;
+    var preprocessor = new Preprocessor(options.node, options.filename || '');
+
+    var _code = preprocessor.compile(code);
+
+    console.log('>>>>>>>>>>>>>>>>>>>>>')
+    console.log(_code)
+    console.log('<<<<<<<<<<<<<<<<<<<<<')
+
+    return _code;
 };
 
-function Parser(node, filename) {
+function Preprocessor(node, filename) {
     var datetime = (new Date()).toUTCString()
             .split(', ')[1]
             .replace(/^(\d{2}) (\w{3}) (\d{4}) (\d{2}:\d{2}:\d{2}).* GMT$/, '$2 $1 $3,$4')
@@ -15,7 +21,11 @@ function Parser(node, filename) {
 
     this.filename = filename;
     this.code = null;
+    this.parsedCode = [];
+    //current token
     this.current = 'start';
+    //skip to next control token
+    this.skipNext = false;
     
     this.predefined = '__LINE__:__DIR__:__FILE__:__DATE__:__TIME__:__NODE__'.split(':');
     
@@ -50,16 +60,30 @@ function parseType(str) {
     return str;
 }
 
-Parser.prototype = {
-    constructor: Parser,
+Preprocessor.prototype = {
+    constructor: Preprocessor,
     allTrim: function (str) {
         return str.replace(/(?:(?:^|\n)\s+|\s+(?:$|\n))/g, '').replace(/\s+/g, ' ');
     },
     getToken: function (line) {
-        for (var i = 0, token, result; i < this.allTokens.length; i++) {
-            token = this.tokens[this.allTokens[i]];
+        for (var i = 0, tname, token, result; i < this.allTokens.length; i++) {
+            tname = this.allTokens[i];
+            token = this.tokens[tname];
             result = token.parse(this.allTrim(line));
             if (result) {
+                var next = this.tokens[this.current].next;
+
+                if (token.change && next && next.indexOf(tname) == -1) {
+                    this.error('Unexpected toket "' + tname + '", expected one of ' + next.join(', ') + '.');
+                }
+                
+                if (!token.change && this.skipNext) {
+                    return null;
+                }
+
+                if (token.change) {
+                    this.current = tname;
+                }
                 return result;
             }
         }
@@ -70,21 +94,35 @@ Parser.prototype = {
         for (var len = this.code.length; this.simbols.__LINE__ < len; this.simbols.__LINE__++) {
             var line = this.code[this.simbols.__LINE__];
             if (line.indexOf('#') == -1) {
+                if (!this.skipNext) {
+                    this.parsedCode.push(line);
+                }
                 continue;
             }
 
             var token = this.getToken(line);
             if (!token) {
+                if (!this.skipNext) {
+                    this.parsedCode.push(line);
+                }
                 continue;
             }
-            console.log(this.simbols);
-            console.log('--------------------------');
-            this[token[0]].apply(this, token.slice(1));
-            console.log(this.simbols);
-            //this.error('STOP');
-            console.log(this.simbols.__LINE__ + ':', line);
-            console.log('##########################');
+            
+            token.push(line);
+            try {
+                line = this[token[0]].apply(this, token.slice(1));
+            } catch (e) {
+                this.error('Unknown token "#' + token[0] + '".');
+            }
+
+            if (line !== false) {
+                this.parsedCode.push(line);
+            }
         }
+        return this.parsedCode.join("\n");
+    },
+    _has: function (varName) {
+        return varName in this.simbols;
     },
     // directives
     define: function (varName, value) {
@@ -93,30 +131,45 @@ Parser.prototype = {
         }
 
         this.simbols[varName] = parseType(value);
-        //
+        return false;
     },
-    undef: function (varName) {
+    undef: function (varName, params) {
         if (this.predefined.indexOf(varName) != -1) {
             this.error('Cannot undeclare predefined constant ' + varName + '.');
+        } else if (params) {
+            this.error('Unexpected clause "' + this.simbols[varName] + '" after #undef.');
         }
 
         delete this.simbols[varName];
+        return false;
     },
-    _const: function (varName) {
+    _const: function (varName, line) {
         if (!(varName in this.simbols)) {
             this.error('Trying to get undeclared constant ' + varName + '.');
         }
 
-        return this.simbols[varName];
+        var val = typeof this.simbols[varName] == 'string' ? '"' + this.simbols[varName].replace(/"/g, '\\"') + '"' : this.simbols[varName];
+
+        return line.replace('/*#' + varName + '*/', val);
     },
     error: function (message) {
-        console.log('\033[1;31mPREPROCESSOR:\033[00m\ Error at line ' + (this.simbols.__LINE__ + 1) + ' in ' + this.filename + '. ' + message);
+        try {
+            throw new Error();
+        } catch (e) {
+            console.log('\n>>> Error ' + this.allTrim(e.stack.split('\n')[2]) + '\n');
+        }
+        console.log("\033[1;31mPREPROCESSOR:\033[00m\ Error at line " + (this.simbols.__LINE__ + 1) + ' in ' + this.filename + '. ' + message);
         process.exit(1);
     },
-    include: function () {
-        //
+    ifdef: function (varName) {
+        if (this._has(varName)) {
+            return false;
+        }
+        this.skipNext = true;
+        return false;
     },
-    callMacro: function () {
-        //
+    endif: function () {
+        this.skipNext = false;
+        return false;
     }
 };

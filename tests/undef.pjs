@@ -1,0 +1,4 @@
+//#define TABLE_SIZE Te"s"t
+//#undef TABLE_SIZE
+
+console.log(/*#TABLE_SIZE*/)

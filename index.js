@@ -1,2 +1,4 @@
 require('./pjs');
-var test = require('./test');
+//var test = require('./test');
+
+require('./tests/' + process.argv[2]);

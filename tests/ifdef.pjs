@@ -1,0 +1,4 @@
+//#define TABLE_SIZE 100
+//#ifdef TABLE_SIZE
+console.log(/*#TABLE_SIZE*/)
+//#endif
