@@ -26,6 +26,8 @@ function Preprocessor(node, filename) {
     this.current = 'start';
     //skip to next control token
     this.skipNext = false;
+    //one of blocks in if statemant is true 
+    this.choosed = false;
     
     this.predefined = '__LINE__:__DIR__:__FILE__:__DATE__:__TIME__:__NODE__'.split(':');
     
@@ -163,12 +165,22 @@ Preprocessor.prototype = {
     },
     ifdef: function (varName) {
         if (this._has(varName)) {
+            this.choosed = true;
+            return false;
+        }
+        this.skipNext = true;
+        return false;
+    },
+    ifndef: function (varName) {
+        if (!this._has(varName)) {
+            this.choosed = true;
             return false;
         }
         this.skipNext = true;
         return false;
     },
     endif: function () {
+        this.choosed = false;
         this.skipNext = false;
         return false;
     }
