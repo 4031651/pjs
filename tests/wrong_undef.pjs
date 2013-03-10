@@ -1,4 +1,0 @@
-//#define TABLE_SIZE Te"s"t
-//#undef TABLE_SIZE Te"s"t
-
-console.log(/*#TABLE_SIZE*/)

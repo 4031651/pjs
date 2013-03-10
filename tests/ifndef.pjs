@@ -1,3 +1,0 @@
-//#ifndef TABLE_SIZE
-console.log("in ifndef")
-//#endif

@@ -1,5 +1,0 @@
-define
-undef
-wrong_undef
-ifdef
-ifdef_ndef
