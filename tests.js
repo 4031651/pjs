@@ -287,6 +287,117 @@ function testIfElifElse() {
     assert.equal(compile('//#define VAR 4\n' + code), '    #else\n');
 }
 
+function testMacro() {
+    var code = '    "#number#second"\n' +
+               '}#*/\n' +
+               '//#@mName(5,test){\n' +
+               '//#}@\n';
+
+    assert.equal(compile('/*#macro mName(number,second){\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number,second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number, second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName( number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName (number, second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName (number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName ( number, second ) {\n' + code), '    "5test"\n\n');
+
+    code = '    "#number#second"\n' +
+           '}#*/\n' +
+           '//#@mName(5,test) {\n' +
+           '//#}@\n';
+    assert.equal(compile('/*#macro mName(number,second){\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number,second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number, second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName( number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName (number, second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName (number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName ( number, second ) {\n' + code), '    "5test"\n\n');
+
+    code = '    "#number#second"\n' +
+           '}#*/\n' +
+           '//#@mName(5, test) {\n' +
+           '//#}@\n';
+    assert.equal(compile('/*#macro mName(number,second){\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number,second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number, second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName( number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName (number, second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName (number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName ( number, second ) {\n' + code), '    "5test"\n\n');
+
+    code = '    "#number#second"\n' +
+           '}#*/\n' +
+           '//#@mName ( 5 , test) {\n' +
+           '//#}@\n';
+    assert.equal(compile('/*#macro mName(number,second){\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number,second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number, second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName(number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName( number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName (number, second) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName (number, second ) {\n' + code), '    "5test"\n\n');
+    assert.equal(compile('/*#macro mName ( number, second ) {\n' + code), '    "5test"\n\n');
+
+
+    assert.throws(
+        function () {
+            compile('/*#macro mName(number) {\n' + code, {throwError: true});
+        },
+        function (err) {
+            return (err instanceof PreprocessorError) && err.message == 'Use undeclared parameter "second" in macro "mName".';
+        }
+    );
+    assert.throws(
+        function () {
+            compile('/*#macro mName(number, second, third) {\n' + code, {throwError: true});
+        },
+        function (err) {
+            return (err instanceof PreprocessorError) && err.message == 'Macros "mName" accepts exactly 3 parameters, 2 given.';
+        }
+    );
+    code = '/*#macro mName(number, second) {\n' +
+           '    "#number#second"\n' +
+           '}#*/\n' +
+           '//#@mName(5, test, 0) {\n' +
+           '//#}@\n';
+    assert.throws(
+        function () {
+            compile(code, {throwError: true});
+        },
+        function (err) {
+            return (err instanceof PreprocessorError) && err.message == 'Macros "mName" accepts exactly 2 parameters, 3 given.';
+        }
+    );
+    code = '\n' +
+           '/*#macro getSocket() {\n' +
+           '    var socket = this.getCustomerSocket(cID);\n' +
+           '    if (!socket) {\n' +
+           '        return;\n' +
+           '    }\n' +
+           '    #__CODE__\n' +
+           '    socket = null;\n' +
+           '}#*/\n' +
+           'function getScreen(io, cID) {\n' +
+           '    //#@getSocket() {\n' +
+           '    socket.emit(\'getScreen\');\n' +
+           '    //#}@\n' +
+           '}';
+    var output = '\nfunction getScreen(io, cID) {\n' +
+                 '    var socket = this.getCustomerSocket(cID);\n' +
+                 '    if (!socket) {\n' +
+                 '        return;\n' +
+                 '    }\n\n' +
+                 '    socket.emit(\'getScreen\');\n' +
+                 '    socket = null;\n' +
+                 '\n' +
+                 '}';
+
+    assert.equal(compile(code), output);
+}
+
 test('#define', testDefine);
 test('undefined constant', testConstUndef);
 test('#undef', testUndef);
@@ -299,5 +410,6 @@ test('#ifndef defined', testIfndefDef);
 test('#else', testElse);
 test('expressions', testExpressions);
 test('#if #elif #else', testIfElifElse);
+test('macroses', testMacro);
 
 console.log('\n\033[00m\033[1;40mDone.\033[00m\n');
