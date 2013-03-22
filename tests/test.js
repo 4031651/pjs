@@ -1,5 +1,5 @@
 var assert = require('assert'),
-    preprocessor = require('./lib/preprocessor'),
+    preprocessor = require('../lib/preprocessor'),
     compile = preprocessor.compile,
     PreprocessorError = preprocessor.PreprocessorError;
 

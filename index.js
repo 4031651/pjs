@@ -1,4 +1,3 @@
-require('./lib/pjs');
-//var test = require('./test');
+require('./lib/pjs').install();
 
 require('./' + process.argv[2]);

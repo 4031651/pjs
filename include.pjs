@@ -1,0 +1,4 @@
+console.log('line 1')
+//#include tests/data/a1.js
+//#include tests/data/a1.pjs
+console.log('line 3')
